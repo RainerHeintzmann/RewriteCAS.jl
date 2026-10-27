@@ -12,6 +12,16 @@ rewrite("REWR D(sin(x)^2,x) : All")              # "2 * cos (x )* sin (x )"
 rw"REWR Int(x*exp(x),x) : RubiIntegrate"         # shown as text: x * exp (x )- exp (x )
 ```
 
+Results can also come back as Julia expressions and functions:
+
+```julia
+rw_expr("REWR D(sin(x)^2,x) : All")              # :(2 * cos(x) * sin(x))
+f = rw_function("REWR Tay(cos(x),x,0,8) : All")  # a function of x
+f(0.5)                                           # 0.87758256..., cos(0.5) = 0.87758256...
+g = rw_function("SYM a, t : positive\ninvfourier(exp(-a*w^2*t), w, x)", :x, :a, :t)
+g(0.3, 1.0, 2.0)                                 # the heat kernel
+```
+
 In the REPL, `}` switches to the `rewrite>` mode (backspace at the start of
 the line returns to Julia). It has Julia's line editing, history and
 `\alpha` + TAB completion; `?REWR` shows the help of rewrite:
@@ -36,9 +46,18 @@ kept between the calls. `RewriteCAS.restart()` starts a new session.
 | --- | --- |
 | `rewrite(statements)` | runs one or more lines, returns the output as a `String` |
 | `rw"statements"` | the same, shown as `Text` |
+| `rw_expr(statements)` | the result (the last one) as a Julia `Expr`: `1//2` for `(1/2)`, `log` for `ln`, `[a, b]`, matrices, `Complex` |
+| `rw_function(statements, vars...)` | the result as a Julia function of `vars` (symbols; default: its free symbols, sorted) |
+| `RewriteCAS.julia_expr(text)` | the `Expr` of a term printed by rewrite |
 | `RewriteCAS.restart()` | ends the session; the next call starts a new one |
 | `RewriteCAS.executable()` | the rewrite program in use |
 | `RewriteCAS.repl_mode(; start_key = '}')` | adds the REPL mode (done by `using` in the REPL) |
+
+`rw_function` builds the function with `eval` in `Main`: a function that
+rewrite knows and Julia only has in a package, such as `erf`, works once that
+package is loaded (`using SpecialFunctions`). New names need no declaration
+in the session (`AUTOSYM real` of `inc/all`); declare those that have a
+sign, e.g. `SYM a : positive`, since some results depend on it.
 
 The language itself is described in the
 [rewrite README](https://github.com/RainerHeintzmann/rewrite#readme).

@@ -1,7 +1,7 @@
 name = "RewriteCAS"
 uuid = "67920edd-431d-455f-82ca-25951262389c"
 authors = ["Rainer Heintzmann <rainer.heintzmann@uni-jena.de>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"

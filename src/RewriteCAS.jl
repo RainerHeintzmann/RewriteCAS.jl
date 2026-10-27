@@ -18,7 +18,7 @@ module RewriteCAS
 
 using Artifacts, Pkg, REPL, ReplMaker
 
-export rewrite, @rw_str
+export rewrite, @rw_str, rw_expr, rw_function
 
 const MARKER = "@@END@@"	# printed after each input, so that the answer is known to be complete
 
@@ -102,6 +102,8 @@ Runs the statements like `rewrite` and shows the output as text.
 macro rw_str(statements)
     :(Text(rewrite($statements)))
 end
+
+include("convert.jl")
 
 """
     RewriteCAS.restart()
