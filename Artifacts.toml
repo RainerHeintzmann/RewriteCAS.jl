@@ -1,0 +1,19 @@
+[[rewrite]]
+arch = "x86_64"
+git-tree-sha1 = "1a3d25e7611925a8fa26eee1a34baf1bb767de21"
+lazy = true
+libc = "glibc"
+os = "linux"
+
+    [[rewrite.download]]
+    sha256 = "2b1dae28d0ae80c9135700095a329f0037a0d896d8f18c1c12614e947637931d"
+    url = "https://github.com/RainerHeintzmann/rewrite/releases/download/v2026.1/rewrite-2026.1-linux-x86_64.tar.gz"
+[[rewrite]]
+arch = "x86_64"
+git-tree-sha1 = "09d6875153667f7da4e86f4051856eec9c9de32b"
+lazy = true
+os = "windows"
+
+    [[rewrite.download]]
+    sha256 = "b767d9a8e7e7927961bae43057d544e5f1ffcd4e266dc9109c78b3bd55ff4b89"
+    url = "https://github.com/RainerHeintzmann/rewrite/releases/download/v2026.1/rewrite-2026.1-windows-x86_64.tar.gz"

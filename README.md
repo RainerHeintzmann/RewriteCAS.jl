@@ -57,18 +57,25 @@ On other systems (macOS), build rewrite from its sources and set
 
 ## A new rewrite release
 
-`Artifacts.toml` names the release tarballs of rewrite (`make bindist`). For
-a new release, the entries are made with
-[ArtifactUtils.jl](https://github.com/JuliaPackaging/ArtifactUtils.jl):
+`Artifacts.toml` names the release tarballs of rewrite: their URLs on the
+GitHub release, a SHA-256 checksum of each file, and the hash of the
+unpacked folder. Julia downloads the tarball for the platform at the first
+use and checks both. For a new version of rewrite (here 2026.1):
 
-```julia
-using ArtifactUtils, Base.BinaryPlatforms
-url = "https://github.com/RainerHeintzmann/rewrite/releases/download/v2026.1/"
-add_artifact!("Artifacts.toml", "rewrite", url * "rewrite-2026.1-linux-x86_64.tar.gz";
-              platform = Platform("x86_64", "linux"), lazy = true, force = true)
-add_artifact!("Artifacts.toml", "rewrite", url * "rewrite-2026.1-windows-x86_64.tar.gz";
-              platform = Platform("x86_64", "windows"), lazy = true, force = true)
-```
+1. In rewrite: set `VERSION` in the makefile, commit, and build the
+   tarballs from that commit: `make bindist` on Linux and on Windows gives
+   `rewrite-2026.1-linux-x86_64.tar.gz` and
+   `rewrite-2026.1-windows-x86_64.tar.gz`.
+2. Here: `julia release/make_artifacts.jl 2026.1 path/to/rewrite` writes
+   `Artifacts.toml` from these two files, with the URLs of step 3.
+3. On GitHub, rewrite → Releases → "Draft a new release": tag `v2026.1`
+   (created on publishing), attach exactly the two files of step 1, publish.
+4. Here: raise `version` in `Project.toml`, commit and push.
+
+The files must not be built again between steps 2 and 3, since the
+checksums would no longer fit. To test the download, delete the folder
+`~/.julia/artifacts/<git-tree-sha1>` (step 2 has put it there) and call
+`RewriteCAS.restart(); rewrite("1+1")` without `REWRITE_EXE`.
 
 ## License
 
