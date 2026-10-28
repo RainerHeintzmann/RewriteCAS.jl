@@ -35,6 +35,9 @@ Without an argument: the list of the examples (the examples of rewrite, each
 followed by a part in Julia). With `which`, a number or a part of the name
 (`rewrite_examples(13)`, `rewrite_examples("ode")`): the source of that
 example; with `run = true` it is also run, in a new rewrite session.
+
+See also [`rw_function`](@ref), which most examples use to turn a result
+into a Julia function.
 """
 function rewrite_examples()
     println("Examples of RewriteCAS (", EXAMPLES, "):\n")

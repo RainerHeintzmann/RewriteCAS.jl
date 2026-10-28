@@ -88,8 +88,10 @@ Runs the statements (as `rewrite`) and returns the result, the last line of
 the output, as a Julia expression:
 
     rw_expr("REWR D(sin(x)^2,x) : All")      # :(2 * cos(x) * sin(x))
+
+See also [`rw_function`](@ref), which makes a Julia function of it.
 """
-rw_expr(statements::AbstractString) = julia_expr(result_line(rewrite(statements)))
+rw_expr(statements::AbstractString) = julia_expr(result_line(rewrite(statements; pretty = false)))
 
 # the free symbols of an expression (not the functions), sorted
 free_symbols(x) = Symbol[]
@@ -100,7 +102,53 @@ function free_symbols(ex::Expr)
 end
 
 """
-    rw_function(statements, vars...) -> Function
+    RwFunction
+
+A function made from a result of rewrite by `rw_function`, `rw_integral` or
+`rw_derivative`. It is called like any function, `f(0.5)`; `?f` shows its
+term, and the fields are `vars` (the arguments), `term` (the result as
+printed by rewrite, with Unicode), `expr` (the Julia expression) and
+`statements` (what rewrite was given).
+"""
+struct RwFunction{F} <: Function
+    f::F
+    vars::Vector{Symbol}
+    term::String
+    expr::Any
+    statements::String
+end
+
+(r::RwFunction)(args...) = Base.invokelatest(r.f, args...)
+
+# a term of several lines (a matrix) begins on a new line
+spaced(term) = occursin('\n', term) ? "\n" * term : " " * term
+
+function Base.show(io::IO, r::RwFunction)
+    print(io, "(", join(r.vars, ", "), ") ->", spaced(r.term))
+end
+Base.show(io::IO, ::MIME"text/plain", r::RwFunction) = show(io, r)
+
+# the help of the function (?f): its term
+function Base.Docs.getdoc(r::RwFunction)
+    args = join(r.vars, ", ")
+    term = replace(spaced(r.term), '\n' => "\n        ")
+    return Markdown.parse("""
+        f($args)
+
+    A function from rewrite:
+
+        f($args) =$term
+
+    the result of the statements
+
+        $(replace(r.statements, '\n' => "\n    "))
+
+    In Julia: `$(r.expr)`. See [`RwFunction`](@ref).
+    """)
+end
+
+"""
+    rw_function(statements, vars...) -> RwFunction
 
 Runs the statements and returns their result as a Julia function of the
 variables `vars` (symbols; by default all free symbols, sorted):
@@ -109,16 +157,55 @@ variables `vars` (symbols; by default all free symbols, sorted):
     f(1.0)                                   # 0.0
     g = rw_function("REWR D(a*x^3,x) : All", :x, :a)
     g(2.0, 0.5)                              # 6.0
+    ?g                                       # g(x, a) = 3·a·x²
 
-The function is built with `eval` in `Main`, so functions that rewrite knows
-and Julia has in another package (`erf` of SpecialFunctions) work once that
-package is loaded there. It can be called at once, also inside the function
-that created it (through `Base.invokelatest`, which costs a little time per
+The function shows its term, as rewrite prints it, and `?g` shows its help.
+It is built with `eval` in `Main`, so functions that rewrite knows and Julia
+has in another package (`erf` of SpecialFunctions) work once that package is
+loaded there. It can be called at once, also inside the function that
+created it (through `Base.invokelatest`, which costs a little time per
 call); `eval(Expr(:->, :x, rw_expr(...)))` gives the plain function.
+
+See also [`rw_integral`](@ref), [`rw_derivative`](@ref), [`rw_expr`](@ref).
 """
-function rw_function(statements::AbstractString, vars::Symbol...)
+rw_function(statements::AbstractString, vars::Symbol...) = make_function(statements, collect(vars))
+
+# the function of vars; without vars of the free symbols, those of lead first
+function make_function(statements, vars, lead = Symbol[])
     ex = rw_expr(statements)
-    vs = isempty(vars) ? free_symbols(ex) : collect(vars)
+    term = rewrite("%")         # the result again, printed with Unicode
+    vs = isempty(vars) ? unique!([lead; free_symbols(ex)]) : vars
     f = Core.eval(Main, Expr(:->, Expr(:tuple, vs...), ex))
-    return (args...) -> Base.invokelatest(f, args...)
+    return RwFunction(f, vs, term, ex, statements)
 end
+
+"""
+    rw_integral(integrand, x, vars...; rules = "RubiIntegrate") -> RwFunction
+
+The antiderivative of `integrand` (a `String` or an `Expr`) with respect to
+`x`, as a function of `x` and the other free symbols (sorted), or of `vars`:
+runs `REWR Int(integrand,x) : rules`.
+
+    F = rw_integral("x*exp(x)", :x)          # (x) -> x·exp(x) - exp(x)
+    F(1.0) - F(0.0)                          # 1.0
+    G = rw_integral("exp(-a*x)", :x)         # (x, a) -> -exp(-a·x)/a
+
+See also [`rw_derivative`](@ref), [`rw_function`](@ref).
+"""
+rw_integral(integrand, x, vars::Symbol...; rules = "RubiIntegrate") =
+    make_function("REWR Int($integrand,$x) : $rules", collect(vars), [Symbol(x)])
+
+"""
+    rw_derivative(term, x, vars...; rules = "All") -> RwFunction
+
+The partial derivative of `term` (a `String` or an `Expr`) with respect to
+`x`, as a function of `x` and the other free symbols (sorted), or of `vars`:
+runs `REWR D(term,x) : rules`.
+
+    f = rw_derivative("sin(x)^2", :x)        # (x) -> 2·cos(x)·sin(x)
+    g = rw_derivative(:(b*x^3), :x)          # (x, b) -> 3·b·x²
+
+See also [`rw_integral`](@ref), [`rw_function`](@ref).
+"""
+rw_derivative(term, x, vars::Symbol...; rules = "All") =
+    make_function("REWR D($term,$x) : $rules", collect(vars), [Symbol(x)])

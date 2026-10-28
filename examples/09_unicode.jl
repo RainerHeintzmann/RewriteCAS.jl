@@ -17,5 +17,5 @@ REWR D(x² + √(1 + x), x) : All
 # ---- in Julia: the same names are Julia variables
 g = rw_function("REWR D(sin(α*θ) + β^2, θ) : All", :α, :θ)
 println(g(2.0, 0.1), " = ", 2cos(0.2))
-println(rewrite("REWR Tay(cos(x),x,0,6) : All"))                 # plain text
-println(rewrite("REWR Tay(cos(x),x,0,6) : All"; pretty = true))  # with Unicode
+println(rewrite("REWR Tay(cos(x),x,0,6) : All"))                  # with Unicode
+println(rewrite("REWR Tay(cos(x),x,0,6) : All"; pretty = false))  # plain text

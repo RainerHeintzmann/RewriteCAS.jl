@@ -12,7 +12,7 @@ end
     if ! has_rewrite
         @warn "no rewrite program found, tests skipped (set ENV[\"REWRITE_EXE\"])"
     else
-        @test rewrite("REWR D(sin(x)^2,x) : All") == "2 * cos (x )* sin (x )"
+        @test rewrite("REWR D(sin(x)^2,x) : All"; pretty = false) == "2 * cos (x )* sin (x )"
         @test rewrite("1/3 + 1/6") == "(1/2)"
         # a session: definitions are kept between the calls
         rewrite("SYM a : real")
@@ -39,10 +39,18 @@ end
         @test m(2.0) ≈ inv([2.0 1; 1 2])
         @test_throws ErrorException rw_expr("AUTOSYM\nundeclared + 1")
         RewriteCAS.restart()
-        # the Unicode output (rewrite's PRETTY 1) for rw"..." and pretty = true
+        # the Unicode output (rewrite's PRETTY 1), the default
         @test rw"REWR D(sin(x)^2,x) : All" == Text("2·cos(x)·sin(x)")
-        @test rewrite("REWR Tay(cos(x),x,0,4) : All"; pretty = true) == "1 - (1/2)·x² + (1/24)·x⁴"
-        @test rewrite("REWR Tay(cos(x),x,0,4) : All") == "1 - (1/2) * x ^ 2 + (1/24) * x ^ 4"
+        @test rewrite("REWR Tay(cos(x),x,0,4) : All") == "1 - (1/2)·x² + (1/24)·x⁴"
+        @test rewrite("REWR Tay(cos(x),x,0,4) : All"; pretty = false) == "1 - (1/2) * x ^ 2 + (1/24) * x ^ 4"
+        # the shorthands, and the term in the display and in the help of the function
+        d = rw_derivative(:(b*x^3), :x)
+        @test d.vars == [:x, :b] && d(2.0, 0.5) ≈ 6.0
+        @test repr(d) == "(x, b) -> 3·b·x²"
+        @test occursin("f(x, b) = 3·b·x²", string(Base.Docs.getdoc(d)))
+        F = rw_integral("x*exp(x)", :x)
+        @test F(1.0) - F(0.0) ≈ 1.0
+        @test F.term == "x·exp(x) - exp(x)" && F isa Function
         @test typeof(rw_expr("2^100")) == Int128
         @test RewriteCAS.example_file("ode") == "13_ode.jl" == RewriteCAS.example_file(13)
         @test occursin("Runge-Kutta", RewriteCAS.example_title("13_ode.jl"))

@@ -7,6 +7,7 @@ in the background with its standard library (`INC "inc/all"`) loaded; the
 statements are passed to it as text, and its output comes back as text.
 
 - `rewrite("REWR D(sin(x)^2,x) : All")` returns the output as a `String`.
+- `rw_function`, `rw_integral`, `rw_derivative` turn a result into a Julia function.
 - `rw"REWR D(sin(x)^2,x) : All"` shows it (as `Text`).
 - In the REPL, `}` switches to the `rewrite>` mode; backspace returns.
 - `RewriteCAS.restart()` starts a new session.
@@ -16,9 +17,9 @@ artifact of this package, otherwise from `rewrite` in the `PATH`.
 """
 module RewriteCAS
 
-using Artifacts, Pkg, REPL, ReplMaker
+using Artifacts, Markdown, Pkg, REPL, ReplMaker
 
-export rewrite, @rw_str, rw_expr, rw_function, rewrite_examples
+export rewrite, @rw_str, rw_expr, rw_function, rw_integral, rw_derivative, rewrite_examples
 
 const MARKER = "@@END@@"	# printed after each input, so that the answer is known to be complete
 
@@ -87,14 +88,17 @@ function send(s::Session, statements::AbstractString)
 end
 
 """
-    rewrite(statements; pretty = false) -> String
+    rewrite(statements; pretty = true) -> String
 
 Runs rewrite statements (one or more lines) in the session and returns their
-output, e.g. `rewrite("REWR D(sin(x)^2,x) : All")` gives `"2 * cos (x )* sin (x )"`.
-With `pretty = true` the output uses Unicode (rewrite's `PRETTY 1`):
-`"2·cos(x)·sin(x)"`, `x²`, `√x`, `π`.
+output, e.g. `rewrite("REWR D(sin(x)^2,x) : All")` gives `"2·cos(x)·sin(x)"`.
+The output uses Unicode (rewrite's `PRETTY 1`): `x²`, `√x`, `π`; with
+`pretty = false` it is plain text, `"2 * cos (x )* sin (x )"`.
+
+See also [`rw_function`](@ref), which makes a Julia function of the result,
+and [`rw_integral`](@ref), [`rw_derivative`](@ref), [`rw_expr`](@ref).
 """
-function rewrite(statements::AbstractString; pretty::Bool = false)
+function rewrite(statements::AbstractString; pretty::Bool = true)
     pretty || return send(session(), statements)
     return send(session(), "PRETTY 1\n" * statements * "\nPRETTY 0")
 end
@@ -104,9 +108,11 @@ end
 
 Runs the statements like `rewrite` and shows the output as text, with Unicode
 (`x²`, `√x`, `π`).
+
+See also [`rw_function`](@ref), which makes a Julia function of the result.
 """
 macro rw_str(statements)
-    :(Text(rewrite($statements; pretty = true)))
+    :(Text(rewrite($statements)))
 end
 
 include("convert.jl")
@@ -129,7 +135,7 @@ end
 
 # the REPL mode: } switches to rewrite>; \alpha TAB gives α as in Julia
 function repl_line(line::AbstractString)
-    out = rewrite(line; pretty = true)
+    out = rewrite(line)
     isempty(out) || println(out)
     return nothing
 end

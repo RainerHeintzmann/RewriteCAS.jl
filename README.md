@@ -8,8 +8,8 @@ Fourier transforms, lists and matrices, all defined by rules in its library.
 ```julia
 using RewriteCAS
 
-rewrite("REWR D(sin(x)^2,x) : All")              # "2 * cos (x )* sin (x )"
-rw"REWR Int(x*exp(x),x) : RubiIntegrate"         # shown with Unicode: x·exp(x) - exp(x)
+rewrite("REWR D(sin(x)^2,x) : All")              # "2·cos(x)·sin(x)"
+rw"REWR Int(x*exp(x),x) : RubiIntegrate"         # shown as text: x·exp(x) - exp(x)
 rw"REWR Tay(cos(x),x,0,6) : All"                 # 1 - (1/2)·x² + (1/24)·x⁴ - (1/720)·x⁶
 ```
 
@@ -17,11 +17,17 @@ Results can also come back as Julia expressions and functions:
 
 ```julia
 rw_expr("REWR D(sin(x)^2,x) : All")              # :(2 * cos(x) * sin(x))
-f = rw_function("REWR Tay(cos(x),x,0,8) : All")  # a function of x
+f = rw_function("REWR Tay(cos(x),x,0,8) : All")  # (x) -> 1 - (1/2)·x² + ...
 f(0.5)                                           # 0.87758256..., cos(0.5) = 0.87758256...
 g = rw_function("SYM a, t : positive\ninvfourier(exp(-a*w^2*t), w, x)", :x, :a, :t)
 g(0.3, 1.0, 2.0)                                 # the heat kernel
+F = rw_integral("x*exp(x)", :x)                  # (x) -> x·exp(x) - exp(x)
+F(1.0) - F(0.0)                                  # 1.0
+d = rw_derivative(:(b*x^3), :x)                  # (x, b) -> 3·b·x²
 ```
+
+A function shows its term, and `?d` shows its help with the term and the
+statements it came from.
 
 In the REPL, `}` switches to the `rewrite>` mode (backspace at the start of
 the line returns to Julia). It has Julia's line editing, history and
@@ -49,12 +55,14 @@ kept between the calls. `RewriteCAS.restart()` starts a new session.
 
 | Function | |
 | --- | --- |
-| `rewrite(statements)` | runs one or more lines, returns the output as a `String` (plain text) |
-| `rewrite(statements; pretty = true)` | the output with Unicode: `x²`, `√x`, `π`, `2·x` (rewrite's `PRETTY 1`) |
-| `rw"statements"` | the pretty output, shown as `Text` (also the `}` REPL mode) |
+| `rewrite(statements)` | runs one or more lines, returns the output as a `String`, with Unicode: `x²`, `√x`, `π`, `2·x` (rewrite's `PRETTY 1`) |
+| `rewrite(statements; pretty = false)` | the output as plain text: `x ^ 2`, `sqrt (x )` |
+| `rw"statements"` | the output, shown as `Text` (also the `}` REPL mode) |
 | `rw_expr(statements)` | the result (the last one) as a Julia `Expr`: `1//2` for `(1/2)`, `log` for `ln`, `[a, b]`, matrices, `Complex` |
 | `rewrite_examples()`, `rewrite_examples(13; run = true)` | the list of the [examples](examples/README.md); one of them (by number or a part of its name, `"ode"`), shown and, with `run = true`, run |
-| `rw_function(statements, vars...)` | the result as a Julia function of `vars` (symbols; default: its free symbols, sorted) |
+| `rw_function(statements, vars...)` | the result as a Julia function (an `RwFunction`) of `vars` (symbols; default: its free symbols, sorted) |
+| `rw_integral(integrand, x, vars...; rules = "RubiIntegrate")` | the antiderivative as a function of `x` and the other free symbols: `REWR Int(integrand,x) : rules` |
+| `rw_derivative(term, x, vars...; rules = "All")` | the partial derivative as a function: `REWR D(term,x) : rules` |
 | `RewriteCAS.julia_expr(text)` | the `Expr` of a term printed by rewrite |
 | `RewriteCAS.restart()` | ends the session; the next call starts a new one |
 | `RewriteCAS.executable()` | the rewrite program in use |
