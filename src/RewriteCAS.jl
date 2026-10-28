@@ -18,7 +18,7 @@ module RewriteCAS
 
 using Artifacts, Pkg, REPL, ReplMaker
 
-export rewrite, @rw_str, rw_expr, rw_function
+export rewrite, @rw_str, rw_expr, rw_function, rewrite_examples
 
 const MARKER = "@@END@@"	# printed after each input, so that the answer is known to be complete
 
@@ -87,23 +87,30 @@ function send(s::Session, statements::AbstractString)
 end
 
 """
-    rewrite(statements) -> String
+    rewrite(statements; pretty = false) -> String
 
 Runs rewrite statements (one or more lines) in the session and returns their
 output, e.g. `rewrite("REWR D(sin(x)^2,x) : All")` gives `"2 * cos (x )* sin (x )"`.
+With `pretty = true` the output uses Unicode (rewrite's `PRETTY 1`):
+`"2·cos(x)·sin(x)"`, `x²`, `√x`, `π`.
 """
-rewrite(statements::AbstractString) = send(session(), statements)
+function rewrite(statements::AbstractString; pretty::Bool = false)
+    pretty || return send(session(), statements)
+    return send(session(), "PRETTY 1\n" * statements * "\nPRETTY 0")
+end
 
 """
     rw"statements"
 
-Runs the statements like `rewrite` and shows the output as text.
+Runs the statements like `rewrite` and shows the output as text, with Unicode
+(`x²`, `√x`, `π`).
 """
 macro rw_str(statements)
-    :(Text(rewrite($statements)))
+    :(Text(rewrite($statements; pretty = true)))
 end
 
 include("convert.jl")
+include("examples.jl")
 
 """
     RewriteCAS.restart()
@@ -122,7 +129,7 @@ end
 
 # the REPL mode: } switches to rewrite>; \alpha TAB gives α as in Julia
 function repl_line(line::AbstractString)
-    out = rewrite(line)
+    out = rewrite(line; pretty = true)
     isempty(out) || println(out)
     return nothing
 end

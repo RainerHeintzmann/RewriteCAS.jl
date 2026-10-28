@@ -9,7 +9,8 @@ Fourier transforms, lists and matrices, all defined by rules in its library.
 using RewriteCAS
 
 rewrite("REWR D(sin(x)^2,x) : All")              # "2 * cos (x )* sin (x )"
-rw"REWR Int(x*exp(x),x) : RubiIntegrate"         # shown as text: x * exp (x )- exp (x )
+rw"REWR Int(x*exp(x),x) : RubiIntegrate"         # shown with Unicode: x·exp(x) - exp(x)
+rw"REWR Tay(cos(x),x,0,6) : All"                 # 1 - (1/2)·x² + (1/24)·x⁴ - (1/720)·x⁶
 ```
 
 Results can also come back as Julia expressions and functions:
@@ -31,8 +32,12 @@ julia> }
 rewrite> SYM s : positive
 rewrite> SYM t : real
 rewrite> invlaplace(1/(s^2+3*s+2), s, t)
-exp (- t )- exp (- 2 * t )
+exp(-t) - exp(-2·t)
 ```
+
+The folder [examples](examples/README.md) has the examples of rewrite,
+each followed by a part in Julia that uses the results (`julia --project
+examples/13_ode.jl`).
 
 ## How it works
 
@@ -44,9 +49,11 @@ kept between the calls. `RewriteCAS.restart()` starts a new session.
 
 | Function | |
 | --- | --- |
-| `rewrite(statements)` | runs one or more lines, returns the output as a `String` |
-| `rw"statements"` | the same, shown as `Text` |
+| `rewrite(statements)` | runs one or more lines, returns the output as a `String` (plain text) |
+| `rewrite(statements; pretty = true)` | the output with Unicode: `x²`, `√x`, `π`, `2·x` (rewrite's `PRETTY 1`) |
+| `rw"statements"` | the pretty output, shown as `Text` (also the `}` REPL mode) |
 | `rw_expr(statements)` | the result (the last one) as a Julia `Expr`: `1//2` for `(1/2)`, `log` for `ln`, `[a, b]`, matrices, `Complex` |
+| `rewrite_examples()`, `rewrite_examples(13; run = true)` | the list of the [examples](examples/README.md); one of them (by number or a part of its name, `"ode"`), shown and, with `run = true`, run |
 | `rw_function(statements, vars...)` | the result as a Julia function of `vars` (symbols; default: its free symbols, sorted) |
 | `RewriteCAS.julia_expr(text)` | the `Expr` of a term printed by rewrite |
 | `RewriteCAS.restart()` | ends the session; the next call starts a new one |

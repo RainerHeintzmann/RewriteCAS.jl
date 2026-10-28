@@ -46,6 +46,11 @@ end
 convert_names(x) = x
 convert_names(s::Symbol) = get(CONSTANTS, s, s)
 function convert_names(ex::Expr)
+    m = ex.head == :macrocall ? ex.args[1] : nothing
+    m isa GlobalRef && (m = m.name)
+    if m in (Symbol("@int128_str"), Symbol("@uint128_str"), Symbol("@big_str"))
+        return Core.eval(@__MODULE__, ex)      # 2^100: Julia parses big literals as a macro call
+    end
     args = map(convert_names, ex.args)
     if ex.head == :call
         f = ex.args[1]

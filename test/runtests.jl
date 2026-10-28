@@ -38,5 +38,23 @@ end
         m = rw_function("SYM c : real\ninverse([[c, 1], [1, c]])", :c)
         @test m(2.0) ≈ inv([2.0 1; 1 2])
         @test_throws ErrorException rw_expr("AUTOSYM\nundeclared + 1")
+        RewriteCAS.restart()
+        # the Unicode output (rewrite's PRETTY 1) for rw"..." and pretty = true
+        @test rw"REWR D(sin(x)^2,x) : All" == Text("2·cos(x)·sin(x)")
+        @test rewrite("REWR Tay(cos(x),x,0,4) : All"; pretty = true) == "1 - (1/2)·x² + (1/24)·x⁴"
+        @test rewrite("REWR Tay(cos(x),x,0,4) : All") == "1 - (1/2) * x ^ 2 + (1/24) * x ^ 4"
+        @test typeof(rw_expr("2^100")) == Int128
+        @test RewriteCAS.example_file("ode") == "13_ode.jl" == RewriteCAS.example_file(13)
+        @test occursin("Runge-Kutta", RewriteCAS.example_title("13_ode.jl"))
+        @test_throws ErrorException rewrite_examples(99)
+        # the examples run without an error (their output is not shown)
+        dir = joinpath(@__DIR__, "..", "examples")
+        for file in sort(filter(endswith(".jl"), readdir(dir)))
+            m = Module(Symbol(splitext(file)[1]))
+            Core.eval(m, :(eval(x) = Core.eval($m, x)))
+            @test (redirect_stdout(devnull) do
+                Base.include(m, joinpath(dir, file))
+            end; true)
+        end
     end
 end
